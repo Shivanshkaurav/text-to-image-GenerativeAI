@@ -17,21 +17,6 @@ API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffus
 headers = {"Authorization": "Bearer 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"}
 
 model = genai.GenerativeModel('gemini-1.5-flash')
-
-class ImageGeneration(APIView):
-    def post(self, request):
-        def query(payload):
-            response = requests.post(API_URL, headers=headers, json=payload)
-            return response.content
-
-        image_bytes = query({
-            "inputs": request.data['prompt'],
-        })
-
-        # Convert the image bytes to a PIL image
-        image = Image.open(io.BytesIO(image_bytes))
-        image.save(f"{settings.MEDIA_ROOT}/image.png")
-        return Response({"success": "Image Generated"}, status=status.HTTP_200_OK)
        
 class SummaryView(APIView):
     def post(self, request):
@@ -42,11 +27,10 @@ class SummaryView(APIView):
             data = data + reader.pages[i].extract_text()        
         
         if data:
-            prompt = "Please provide Title and summary for the following content without \n." + data
+            prompt = "Please provide Title and summary of 500 words for the following content without \n." + data
             response = model.generate_content(prompt)
             a = response.text
             str_ing = " ".join(a.split())
-            # import pdb;pdb.set_trace()
             
             data = str_ing.split("## Summary: ")
             t = data[0]
@@ -62,16 +46,13 @@ class SummaryView(APIView):
             image_bytes = query({
             "inputs": title,
             })
-            # import pdb;pdb.set_trace()
-            # Convert the image bytes to a PIL image
             image = Image.open(io.BytesIO(image_bytes))
             image_format = image.format.lower()
             image_name = f"{title}.{image_format}"
             image_path = default_storage.save(f'summaries/{image_name}', ContentFile(image_bytes))
-            # image.save(f"{settings.MEDIA_ROOT}/{title}.png")
             
-            Summary.objects.create(title=title, summary=summary, image=image_path)
-            serializer = SummarySerializer(Summary.objects.all(), many=True)
+            data = Summary.objects.create(title=title, summary=summary, image=image_path)
+            serializer = SummarySerializer(data, many=True)
             return Response({"data": serializer.data}, status=status.HTTP_200_OK)
         
         return Response({"Error":"Some Error"}, status=status.HTTP_400_BAD_REQUEST)
