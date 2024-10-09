@@ -51,7 +51,8 @@ class SummaryView(APIView):
             image_name = f"{title}.{image_format}"
             image_path = default_storage.save(f'summaries/{image_name}', ContentFile(image_bytes))
             
-            data = Summary.objects.create(title=title, summary=summary, image=image_path)
+            Summary.objects.create(title=title, summary=summary, image=image_path)
+            data = Summary.objects.all()
             serializer = SummarySerializer(data, many=True)
             return Response({"data": serializer.data}, status=status.HTTP_200_OK)
         
